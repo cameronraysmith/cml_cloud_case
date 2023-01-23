@@ -13,14 +13,15 @@ jobs:
       - name: deploy
         shell: bash
         env:
-          repo_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS_DATA: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_DATA }} 
+          # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           cml-runner \
-          --cloud aws \
-          --cloud-region us-west \
-          --cloud-type=g3.4xlarge \
+          --cloud gcp \
+          --cloud-region us-central1-c \
+          --cloud-type=m+t4 \
           --cloud-hdd-size 64 \
           --labels=cml-runner
 
@@ -40,8 +41,9 @@ jobs:
 
     - name: cml
       env:
-        repo_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        REPO_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       run: |
+        set -x
         apt-get update -y
         apt install imagemagick -y
         pip install -r requirements.txt
@@ -55,7 +57,8 @@ jobs:
         convert +append final_owl.png master_owl.png out.png
         convert out.png -resize 75%  out_shrink.png
         echo "### Workspace vs. Main" >> report.md
-        cml-publish out_shrink.png --md --title 'compare' >> report.md
+        # cml-publish out_shrink.png --md --title 'compare' >> report.md
+        echo '![](./out_shrink.png "compare")'  >> report.md
         
         echo "## Training metrics" >> report.md
         dvc params diff master --show-md >> report.md
@@ -64,4 +67,6 @@ jobs:
         echo "## GPU info" >> report.md
         cat gpu_info.txt >> report.md
         
-        cml-send-comment report.md 
+        # cml-send-comment report.md 
+        cml comment create --publish=true --target=commit report.md
+        set +x
